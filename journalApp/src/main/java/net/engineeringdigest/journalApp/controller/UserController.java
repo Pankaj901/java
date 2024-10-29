@@ -2,12 +2,15 @@ package net.engineeringdigest.journalApp.controller;
 
 import net.engineeringdigest.journalApp.entity.JournalEntry;
 import net.engineeringdigest.journalApp.entity.User;
+import net.engineeringdigest.journalApp.repository.UserRepository;
 import net.engineeringdigest.journalApp.service.JournalEntryService;
 import net.engineeringdigest.journalApp.service.UserService;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -17,56 +20,55 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/user")
 public class UserController {
-
     @Autowired
     private UserService userService;
 
-    @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> all = userService.getAll();
-        if (all != null && !all.isEmpty()) {
-            return new ResponseEntity<>(all, HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-    }
+    @Autowired
+    private UserRepository userRepository;
 
-    @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        try {
-            userService.saveEntry(user);
-            return new ResponseEntity<>(user, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(user, HttpStatus.BAD_REQUEST);
-        }
 
-    }
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// user cant see all user we will move this to adminController
+// $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-//    @GetMapping("entry/{myId}")
-//    public ResponseEntity<JournalEntry> getJournalEntryById(@PathVariable ObjectId myId) {
-//        Optional<JournalEntry> journalEntry = UserService.findById(myId);
-//        if (journalEntry.isPresent()) {
-//            return new ResponseEntity<>(journalEntry.get(), HttpStatus.OK);
+//    @GetMapping
+//    public ResponseEntity<List<User>> getAllUsers() {
+//        List<User> all = userService.getAll();
+//        if (all != null && !all.isEmpty()) {
+//            return new ResponseEntity<>(all, HttpStatus.OK);
 //        }
 //        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 //    }
-//
-//    @DeleteMapping("entry/{myId}")
-//    public ResponseEntity<JournalEntry> deleteJournalEntryById(@PathVariable ObjectId myId) {
-//        UserService.deleteById(myId);
-//        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-//    }
 
-    @PutMapping("/{userName}")
-    public ResponseEntity<User> updateJournalById(@RequestBody User user, @PathVariable String userName) {
-        User userInDb = userService.findByUserName(userName);
-        if (userInDb != null) {
-            userInDb.setUserName(!user.getUserName().isEmpty() ? user.getUserName() : userInDb.getUserName());
-            userInDb.setPassword(!user.getPassword().isEmpty() ? user.getPassword() : userInDb.getPassword());
+
+    @PutMapping
+    public ResponseEntity<User> updateJournalById(@RequestBody User user) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userName = authentication.getName();
+
+            User userInDb = userService.findByUserName(userName);
+            userInDb.setUserName(user.getUserName());
+            userInDb.setPassword(user.getPassword());
 
             userService.saveEntry(userInDb);
             return new ResponseEntity<>(userInDb, HttpStatus.OK);
+        } catch (Exception _) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+
+    @DeleteMapping
+    public ResponseEntity<?> deleteUserById(){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            userRepository.deleteByUserName(authentication.getName());
+            return new ResponseEntity<>(authentication.getName(), HttpStatus.OK);
+        }catch (Exception _){
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
 
     }
+
 }
