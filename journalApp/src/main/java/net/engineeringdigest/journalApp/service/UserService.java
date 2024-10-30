@@ -15,20 +15,17 @@ import java.util.Optional;
 @Component
 public class UserService {
 
+    private static final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     @Autowired
     private UserRepository userRepository;
 
-    private static final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
-    public void saveEntry(User user) {
+    public void saveNewUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRoles(Arrays.asList("USER"));
         userRepository.save(user);
     }
 
-    public  void saveNewUser(User user){
-        userRepository.save(user);
-    }
+    public void saveUser(User user) {userRepository.save(user);}
 
     public List<User> getAll() {
         return userRepository.findAll();
